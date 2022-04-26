@@ -1,0 +1,32 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  font-size: 2rem;
+  gap: 2rem;
+}
+
+.content {
+  display: flex;
+  gap: 2.5rem;
+}
+
+.meta {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  &Field {
+    text-transform: capitalize;
+    font-weight: 800;
+  }
+  &Data {
+    text-transform: none;
+    font-weight: 400;
+  }
+}
+
+.description {
+  max-height: 10rem;
+  width: 100%;
+  overflow-y: auto;
+  word-wrap: break-word;
+}
