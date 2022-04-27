@@ -1,45 +1,59 @@
 import styles from './styles.module.scss';
 
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo, useRef } from 'react';
 import InfiniteScroll from 'react-infinite-scroll-component';
-import { UserPreview } from 'shared/api';
 import { userModel, UserRow } from 'entities/user';
-import { Input } from 'shared/ui';
+import { Input, Loader } from 'shared/ui';
 import { userHooks } from 'entities/user';
 import { Link } from 'react-router-dom';
 import debounce from 'lodash.debounce';
 
 interface Props {
   nodeId: string;
-  list: UserPreview[];
-  isLoading: boolean;
-  fetchUsers: () => Promise<void>;
 }
 
-export const UsersSearch = ({ list, nodeId, fetchUsers, isLoading }: Props) => {
+export const UsersSearch = ({ nodeId }: Props) => {
+  const {
+    data: users,
+    pagination,
+    error,
+    refetch,
+    isLoading,
+  } = userHooks.useFetchUsersList();
+
+  const fetchNextUsers = useCallback(async () => {
+    await refetch({ since: pagination.since });
+  }, [pagination.since, refetch]);
+
   const { search, setSearch } = userModel.useUserContext();
+
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const [
     getSearchUsers,
     {
       data: searchedUsers,
-      pagination,
-      error,
+      pagination: searchedPagination,
+      error: searchedError,
       isLoading: isSearchedLoading,
-      fetchNextUsers,
+      fetchNextUsers: fetchNextSearchedUsers,
     },
   ] = userHooks.useLazyFetchSearchedUsersList();
 
-  const fetchSearched = async (searchValue?: string) => {
-    await getSearchUsers({
-      q: searchValue || search,
-      page: pagination?.page || 1,
-    });
+  const fetchSearched = async (searchValue: string) => {
+    // preventing infinity-scroll-component from fetching twice when it was scrolled from top
+    if (scrollRef.current?.scrollTop === 0) {
+      await getSearchUsers({
+        q: searchValue || search,
+        page: searchedPagination?.page || 1,
+      });
+    }
   };
+
   const fetchNextSearched = async () => {
-    await fetchNextUsers({
+    await fetchNextSearchedUsers({
       q: search,
-      page: pagination?.page,
+      page: searchedPagination?.page,
     });
   };
 
@@ -57,18 +71,18 @@ export const UsersSearch = ({ list, nodeId, fetchUsers, isLoading }: Props) => {
     []
   );
 
-  const mappedList = search ? searchedUsers : list;
+  const mappedList = search ? searchedUsers : users;
 
   const loader = useMemo(
     () =>
-      error ? (
-        <h4>{error}</h4>
+      searchedError || error ? (
+        <h4>{searchedError || error}</h4>
       ) : isLoading || isSearchedLoading ? (
-        'Loading...'
+        <Loader />
       ) : (
         'No data'
       ),
-    [error, isLoading, isSearchedLoading]
+    [searchedError, error, isLoading, isSearchedLoading]
   );
 
   return (
@@ -78,10 +92,10 @@ export const UsersSearch = ({ list, nodeId, fetchUsers, isLoading }: Props) => {
         className={styles.input}
         defaultValue={search}
       />
-      <div id={nodeId} className={styles.scrollable}>
+      <div ref={scrollRef} id={nodeId} className={styles.scrollable}>
         <InfiniteScroll
-          dataLength={search ? searchedUsers.length : list.length}
-          next={search ? fetchNextSearched : fetchUsers}
+          dataLength={search ? searchedUsers.length : users.length}
+          next={search ? fetchNextSearched : fetchNextUsers}
           hasMore={true}
           scrollableTarget={nodeId}
           loader={loader}

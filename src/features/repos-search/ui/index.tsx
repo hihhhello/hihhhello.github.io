@@ -2,7 +2,7 @@ import styles from './styles.module.scss';
 
 import React, { useEffect, useMemo, useRef } from 'react';
 import InfiniteScroll from 'react-infinite-scroll-component';
-import { Input } from 'shared/ui';
+import { Input, Loader } from 'shared/ui';
 import debounce from 'lodash.debounce';
 import { useRepoContext } from 'entities/repo/model';
 import { repoHooks, RepoRow } from 'entities/repo';
@@ -21,6 +21,7 @@ export const ReposSearch = ({ nodeId, login }: Props) => {
   }, []);
 
   const inputRef = useRef<HTMLInputElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const [fetchRepos, { data, pagination, isLoading, error, fetchNext }] =
     repoHooks.useFetchRepos(login);
@@ -42,7 +43,10 @@ export const ReposSearch = ({ nodeId, login }: Props) => {
   const onSearchChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const searchValue = e.target.value;
     setSearch(searchValue);
-    await fetchSearched(searchValue);
+    // preventing infinity-scroll-component from fetching twice when it was scrolled from top
+    if (scrollRef.current?.scrollTop === 0) {
+      await fetchSearched(searchValue);
+    }
   };
 
   const debouncedSearchChange = useMemo(
@@ -62,7 +66,7 @@ export const ReposSearch = ({ nodeId, login }: Props) => {
       error ? (
         <h4>{error}</h4>
       ) : isLoading ? (
-        'Loading...'
+        <Loader />
       ) : isLast ? (
         'No more data'
       ) : null,
@@ -76,7 +80,7 @@ export const ReposSearch = ({ nodeId, login }: Props) => {
         className={styles.input}
         ref={inputRef}
       />
-      <div id={nodeId} className={styles.scrollable}>
+      <div id={nodeId} className={styles.scrollable} ref={scrollRef}>
         <InfiniteScroll
           dataLength={data.length}
           next={fetchNextSearched}

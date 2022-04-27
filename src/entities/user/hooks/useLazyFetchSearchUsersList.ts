@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { githubApi, UserPreview } from 'shared/api';
 import { userModel } from '..';
 import { useUserContext } from '../model';
@@ -22,11 +22,23 @@ export const useLazyFetchSearchedUsersList =
   (): UseGetSearchedUsersReturnType => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const { page, setPage, searchedUsers, setSearchedUsers, search } =
-      useUserContext();
+    const {
+      page,
+      setPage,
+      searchedUsers,
+      setSearchedUsers,
+      search,
+      setIsLast,
+      isLast,
+    } = useUserContext();
+
+    const isLoaded = useRef<boolean>(false);
 
     const fetchUsers = useCallback(
       async (params: githubApi.users.GetSearchUsersListParams) => {
+        if (isLast) {
+          return;
+        }
         try {
           setIsLoading(true);
           setError(null);
@@ -34,6 +46,8 @@ export const useLazyFetchSearchedUsersList =
           setSearchedUsers(list);
           if (next) {
             setPage(+next!.page);
+          } else {
+            setIsLast(true);
           }
         } catch (e) {
           // @ts-ignore
@@ -48,6 +62,10 @@ export const useLazyFetchSearchedUsersList =
 
     const fetchNextUsers = useCallback(
       async (params: githubApi.users.GetSearchUsersListParams) => {
+        if (isLast) {
+          return;
+        }
+
         try {
           setIsLoading(true);
           setError(null);
@@ -69,6 +87,17 @@ export const useLazyFetchSearchedUsersList =
 
     useEffect(() => {
       setPage(1);
+      setIsLast(false);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    useEffect(() => {
+      if (isLoaded.current) {
+        setPage(1);
+        setSearchedUsers([]);
+      }
+      setIsLast(false);
+      isLoaded.current = true;
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [search]);
 

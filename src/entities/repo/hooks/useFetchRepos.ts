@@ -104,7 +104,6 @@ export const useFetchRepos = (
 
   useEffect(() => {
     if (isLoaded.current) {
-      console.log('clearing repos and is last');
       setRepos([]);
       setPage(1);
       setIsLast(false);

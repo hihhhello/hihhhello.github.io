@@ -16,6 +16,8 @@ interface IUserContext {
   setSince: React.Dispatch<React.SetStateAction<number>>;
   initialScrollY: number;
   setInitialScrollY: React.Dispatch<React.SetStateAction<number>>;
+  isLast: boolean;
+  setIsLast: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const initialValues: IUserContext = {
@@ -33,6 +35,8 @@ const initialValues: IUserContext = {
   setSince: () => {},
   initialScrollY: 0,
   setInitialScrollY: () => {},
+  isLast: false,
+  setIsLast: () => {},
 };
 
 const UserContext = createContext(initialValues);
@@ -47,6 +51,7 @@ export const UserProvider = ({ children }: React.PropsWithChildren<{}>) => {
   const [searchedUsers, setSearchedUsers] = useState<UserPreview[]>([]);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [initialScrollY, setInitialScrollY] = useState(0);
+  const [isLast, setIsLast] = useState(false);
 
   const values: IUserContext = useMemo(
     () => ({
@@ -64,8 +69,19 @@ export const UserProvider = ({ children }: React.PropsWithChildren<{}>) => {
       setSearchedUsers,
       initialScrollY,
       setInitialScrollY,
+      isLast,
+      setIsLast,
     }),
-    [search, users, page, selectedUser, since, searchedUsers, initialScrollY]
+    [
+      search,
+      users,
+      page,
+      selectedUser,
+      since,
+      searchedUsers,
+      initialScrollY,
+      isLast,
+    ]
   );
 
   return <UserContext.Provider value={values}>{children}</UserContext.Provider>;
